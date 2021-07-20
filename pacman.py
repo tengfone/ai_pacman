@@ -8,6 +8,7 @@ from animation import Animation
 class Pacman(MazeRunner):
     def __init__(self, nodes, spritesheet,mode='normal'):
         MazeRunner.__init__(self, nodes, spritesheet)
+        self.nextDirection = None
         if mode == 'normal':
             self.name = "pacman"
             self.color = YELLOW
@@ -48,26 +49,16 @@ class Pacman(MazeRunner):
         self.visible = True
         self.position += self.direction*self.speed*dt
         self.updateAnimation(dt)
-        direction = self.getValidKey()
-        if direction:
-            self.moveByKey(direction)
+        if self.nextDirection:
+            self.moveByKey(self.nextDirection)
         else:
             self.moveBySelf()
 
     def updateDeath(self, dt):
         self.image = self.animation.update(dt)
         
-    def getValidKey(self):
-        key_pressed = pygame.key.get_pressed()
-        if key_pressed[K_UP]:
-            return UP
-        if key_pressed[K_DOWN]:
-            return DOWN
-        if key_pressed[K_LEFT]:
-            return LEFT
-        if key_pressed[K_RIGHT]:
-            return RIGHT
-        return None
+    def setDirection(self, direction):
+        self.nextDirection = direction
 
     def moveByKey(self, direction):
         if self.direction is STOP:
@@ -87,6 +78,7 @@ class Pacman(MazeRunner):
                         else:
                             self.setPosition()
                             self.direction = STOP
+                            print("STOPPING")
                     else:
                         self.target = self.node.neighbors[direction]
                         if self.direction != direction:
