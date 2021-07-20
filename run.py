@@ -1,7 +1,6 @@
 import pygame
 import numpy as np
 import random
-
 from pygame.locals import *
 from constants import *
 from pacman import Pacman
@@ -16,6 +15,7 @@ from sprites import Spritesheet
 from maze import Maze
 import sys
 import threading
+import time
 
 class GameController(object):
     ## change or delete as necessary, unused for now
@@ -124,8 +124,6 @@ class GameController(object):
 
     def startGame(self):
         print("Starting game")
-        if self.state == 'rl':
-            self.level = LevelController('rl')
         self.level.reset()
         levelmap = self.level.getLevel()
         self.maze.getMaze(levelmap["name"].split(".")[0])
@@ -134,15 +132,31 @@ class GameController(object):
         self.nodes = NodeGroup(levelmap["name"])
         self.pellets = PelletGroup(levelmap["name"])
         self.pacman = Pacman(self.nodes, self.sheet)
-        if self.state == 'rl':
-            self.pacman = Pacman(self.nodes, self.sheet, 'rl')
         self.ghosts = GhostGroup(self.nodes, self.sheet)
         self.pelletsEaten = 0
         self.fruit = None
-        if self.state == 'rl':
-            self.pause.force(False)
-        else:
-            self.pause.force(True)
+        self.pause.force(True)
+        self.text.showReady()
+        self.text.updateLevel(self.level.level+1)
+        self.gameover = False
+        self.maze.reset()
+        self.flashBackground = False
+    
+    def startAIGame(self):
+        print("Starting AI Learning")
+        self.level = LevelController('rl')
+        self.level.reset()
+        levelmap = self.level.getLevel()
+        self.maze.getMaze(levelmap["name"].split(".")[0])
+        self.maze.constructMaze(
+            self.background, self.background_flash, levelmap["row"])
+        self.nodes = NodeGroup(levelmap["name"])
+        self.pellets = PelletGroup(levelmap["name"])
+        self.pacman = Pacman(self.nodes, self.sheet, 'rl')
+        self.ghosts = GhostGroup(self.nodes, self.sheet)
+        self.pelletsEaten = 0
+        self.fruit = None
+        self.pause.force(False)
         self.text.showReady()
         self.text.updateLevel(self.level.level+1)
         self.gameover = False
@@ -185,7 +199,10 @@ class GameController(object):
             elif event.type == KEYDOWN:
                 if event.key == K_SPACE:
                     if self.gameover:
-                        self.startGame()
+                        if self.state == 'rl':
+                            self.startAIGame()
+                        else:
+                            self.startGame()
                     else:
                         self.pause.player()
                         if self.pause.paused:
@@ -288,7 +305,7 @@ class GameController(object):
                 self.startGame()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_a:
                 self.state = 'rl'
-                self.startGame()
+                self.startAIGame()
 
     def start_draw(self):
         self.screen.fill((0, 0, 0))
@@ -315,7 +332,7 @@ class GameController(object):
                 self.start_events()
                 self.start_draw()
 
-            if self.state == 'normal' or self.state == 'rl':
+            if self.state == 'normal':
                 if not self.gameover:
                     dt = self.clock.tick(30) / 1000.0
                     if not self.pause.paused:
@@ -344,6 +361,37 @@ class GameController(object):
                 self.checkEvents()
                 self.text.updateScore(self.score)
                 self.render()
+
+            if self.state == 'rl':
+                if not self.gameover:
+                    dt = self.clock.tick(30) / 1000.0
+                    if not self.pause.paused:
+                        self.pacman.update(dt)
+                        self.ghosts.update(dt, self.pacman)
+                        if self.fruit is not None:
+                            self.fruit.update(dt)
+
+                        if self.pause.pauseType != None:
+                            self.pause.settlePause(self)
+
+                        self.checkPelletEvents()
+                        self.checkGhostEvents()
+                        self.checkFruitEvents()
+
+                    else:
+                        if self.flashBackground:
+                            self.maze.flash(dt)
+
+                        if self.pacman.animateDeath:
+                            self.pacman.updateDeath(dt)
+
+                    self.pause.update(dt)
+                    self.pellets.update(dt)
+                    self.text.update(dt)
+                self.checkEvents()
+                self.text.updateScore(self.score)
+                self.render()
+
         pygame.quit()
         sys.exit()
 
@@ -353,7 +401,6 @@ def runGame():
     game.run()
 
 def trainAI():
-    import time
     global game
     gameReady = False
     while not gameReady:
