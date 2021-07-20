@@ -1,4 +1,4 @@
-import pygame, gym
+import pygame
 import numpy as np
 import random
 
