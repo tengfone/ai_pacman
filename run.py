@@ -1,4 +1,7 @@
-import pygame
+import pygame, gym
+import numpy as np
+import random
+
 from pygame.locals import *
 from constants import *
 from pacman import Pacman
@@ -12,9 +15,84 @@ from text import TextGroup
 from sprites import Spritesheet
 from maze import Maze
 import sys
-
+import threading
 
 class GameController(object):
+    ## change or delete as necessary, unused for now
+    AI_UP = 0
+    AI_DOWN = 1
+    AI_LEFT = 2
+    AI_RIGHT = 3
+    ## check also if need self.clear
+
+    directionMapper = {"0_-1": 0, "0_1": 1, "-1_0": 2, "1_0": 3}
+
+    ## for detection of object in front and beside pacman, since the game is not discrete
+    ## may need tweaking
+    MULTIPLIER_FRONT = 0.5
+    MULTIPLIER_SIDE = 1.5
+
+    def get_direction(self, state, index, diffX, diffY):
+        if abs(diffX) <= TILEWIDTH * self.MULTIPLIER_SIDE and abs(diffY) < TILEHEIGHT * self.MULTIPLIER_FRONT:
+            if diffX > 0: # Left
+                state[index][2] = 1
+            else: # Right
+                state[index][3] = 1
+        elif abs(diffX) <= TILEWIDTH * self.MULTIPLIER_FRONT and abs(diffY) <= TILEHEIGHT * self.MULTIPLIER_SIDE:
+            if diffY > 0: # Up
+                state[index][0] = 1
+            else: # Down
+                state[index][1] = 1
+
+    def get_state(self):
+        # Up Down Left Right
+        # Direction, Danger, Coin, Powerup, Ghost, Cherry, Wall
+        state = np.zeros([7,4])
+        direction = str(self.pacman.direction.x) + "_" + str(self.pacman.direction.y)
+        if direction in self.directionMapper:
+            state[0][self.directionMapper[direction]] = 1
+        
+        for ghost in self.ghosts:
+            diffX = self.pacman.position.x - ghost.position.x
+            diffY = self.pacman.position.y - ghost.position.y
+            index = 4 if ghost.mode.name == "FREIGHT" else 1
+            self.get_direction(state, index, diffX, diffY)
+
+        for pellet in self.pellets.pelletList:
+            diffX = self.pacman.position.x - pellet.position.x
+            diffY = self.pacman.position.y - pellet.position.y
+            index = 3 if pellet.name == "powerpellet" else 2
+            self.get_direction(state, index, diffX, diffY)
+            
+        if self.fruit is not None:
+            diffX = self.pacman.position.x - self.fruit.position.x
+            diffY = self.pacman.position.y - self.fruit.position.y
+            index = 5
+            self.get_direction(state, index, diffX, diffY)
+
+        print(state)
+        # return state
+    
+    ## any use?
+
+    # def move(self, action):
+    #     if action == self.AI_UP:
+    #         # print("Move Up")
+    #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_UP)
+    #         pygame.event.post(keyEvent)
+    #     elif action == self.AI_DOWN:
+    #         # print("Move Down")
+    #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_DOWN)
+    #         pygame.event.post(keyEvent)
+    #     elif action == self.AI_LEFT:
+    #         # print("Move Left")
+    #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_LEFT)
+    #         pygame.event.post(keyEvent)
+    #     elif action == self.AI_RIGHT:
+    #         # print("Move Right")
+    #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
+    #         pygame.event.post(keyEvent)
+    
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode(SCREENSIZE, 0, 32)
@@ -34,6 +112,7 @@ class GameController(object):
         self.flashBackground = False
         self.state = 'intro'
         self.running = True
+        # self.clear = False
 
     def introGame(self):
         print("Intro Session")
@@ -61,7 +140,7 @@ class GameController(object):
         self.pelletsEaten = 0
         self.fruit = None
         if self.state == 'rl':
-            self.pause.force(True)
+            self.pause.force(False)
         else:
             self.pause.force(True)
         self.text.showReady()
@@ -96,6 +175,7 @@ class GameController(object):
         self.pause.force(True)
         self.fruit = None
         self.flashBackground = False
+        # self.clear = False
         self.maze.reset()
 
     def checkEvents(self):
@@ -112,6 +192,14 @@ class GameController(object):
                             self.text.showPause()
                         else:
                             self.text.hideMessages()
+                elif event.key == K_UP:
+                    self.pacman.setDirection(UP)
+                elif event.key == K_DOWN:
+                    self.pacman.setDirection(DOWN)
+                elif event.key == K_LEFT:
+                    self.pacman.setDirection(LEFT)
+                elif event.key == K_RIGHT:
+                    self.pacman.setDirection(RIGHT)
 
     def checkPelletEvents(self):
         pellet = self.pacman.eatPellets(self.pellets.pelletList)
@@ -129,6 +217,7 @@ class GameController(object):
                 self.ghosts.resetPoints()
                 self.ghosts.freightMode()
             if self.pellets.isEmpty():
+                # self.clear = True
                 self.pacman.visible = False
                 self.ghosts.hide()
                 self.pause.startTimer(3, "clear")
@@ -258,7 +347,65 @@ class GameController(object):
         pygame.quit()
         sys.exit()
 
-
-if __name__ == "__main__":
+def runGame():
+    global game
     game = GameController()
     game.run()
+
+def trainAI():
+    import time
+    global game
+    gameReady = False
+    while not gameReady:
+        try:
+            print(game.state)
+            gameReady = True
+        except NameError:
+            print("Waiting for game..")
+            time.sleep(0.1)
+    hasPacman = False
+    while not hasPacman:
+        try:
+            print(game.pacman)
+            hasPacman = True
+        except AttributeError:
+            print("Waiting for pacman..")
+            time.sleep(0.1)
+    for i in range(100):
+        # action = random.randint(0, 3)
+        # if action == 0:
+        #     print("Move Up")
+        #     keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_UP)
+        #     pygame.event.post(keyEvent)
+        # elif action == 1:
+        #     print("Move Down")
+        #     keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_DOWN)
+        #     pygame.event.post(keyEvent)
+        # elif action == 2:
+        #     print("Move Left")
+        #     keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_LEFT)
+        #     pygame.event.post(keyEvent)
+        # elif action == 3:
+        #     print("Move Right")
+        #     keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
+        #     pygame.event.post(keyEvent)
+        game.get_state()
+        time.sleep(1)
+
+global game
+
+if __name__ == "__main__":
+    threads = []
+    
+    threads.append(threading.Thread(target=runGame, daemon=True))
+    threads.append(threading.Thread(target=trainAI, daemon=True))
+
+    for thread in threads:
+        thread.start()
+    
+    while True:
+        try:
+            [t.join(1) for t in threads]
+        except KeyboardInterrupt:
+            game.running = False
+            sys.exit()
