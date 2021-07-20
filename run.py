@@ -202,17 +202,17 @@ class GameController(object):
                 self.startGame()
 
     def start_draw(self):
-        self.screen.fill((0, 0, 255))
+        self.screen.fill((0, 0, 0))
         self.draw_text('PUSH SPACE BAR TO PLAY', self.screen, [SCREENWIDTH//2, SCREENHEIGHT//2 - 50],
-                       16, (170, 132, 58), FONTTYPE, centered=True)
+                       14, (255, 255, 51), centered=True)
         self.draw_text('PUSH A TO ENTER AI MODE', self.screen, [SCREENWIDTH//2, SCREENHEIGHT//2 - 0],
-                       16, (170, 132, 58), FONTTYPE, centered=True)
+                       14, (255, 255, 51), centered=True)
         self.draw_text('1 PLAYER ONLY', self.screen, [SCREENWIDTH//2, SCREENHEIGHT//2 + 50],
-                       16, (44, 167, 198), FONTTYPE, centered=True)
+                       14, (44, 167, 198), centered=True)
         pygame.display.update()
 
-    def draw_text(self, text, screen, pos, size, color, font_name, centered=False):
-        font = pygame.font.SysFont(font_name, size)
+    def draw_text(self, text, screen, pos, size, color, centered=False):
+        font = pygame.font.Font(FONTTYPE, size)
         text = font.render(text, False, color)
         text_size = text.get_size()
         if centered:
