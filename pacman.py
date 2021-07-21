@@ -62,13 +62,7 @@ class Pacman(MazeRunner):
             self.moveByKey(self.nextDirection)
         else:
             self.moveBySelf()
-
-    def getPOVWalls(self,direction):
-        direction = [UP,DOWN,LEFT,RIGHT,STOP]
-        povWalls = []
-        for eachDir in direction:
-            pass
-
+            
     def updateDeath(self, dt):
         self.image = self.animation.update(dt)
         

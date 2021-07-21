@@ -16,6 +16,10 @@ from maze import Maze
 import sys
 import threading
 import time
+import os
+from agent import *
+import matplotlib.pyplot as plt
+from IPython import display
 
 
 class GameController(object):
@@ -74,7 +78,8 @@ class GameController(object):
             self.get_direction(state, index, diffX, diffY)
 
         # print(state)
-        # return state
+        state = state.reshape(-1)
+        return np.array(state, dtype=int)
 
     # any use?
 
@@ -115,6 +120,7 @@ class GameController(object):
         self.flashBackground = False
         self.state = 'intro'
         self.running = True
+        self.reward = 0
         # self.clear = False
 
     def introGame(self):
@@ -186,6 +192,8 @@ class GameController(object):
 
     def restartLevel(self):
         print("Restart current level")
+        if self.state == 'rl':
+            self.score = 0
         self.pacman.reset()
         self.ghosts = GhostGroup(self.nodes, self.sheet)
         self.pause.force(True)
@@ -223,7 +231,9 @@ class GameController(object):
     def checkPelletEvents(self):
         pellet = self.pacman.eatPellets(self.pellets.pelletList)
         if pellet:
-            # pygame.mixer.Sound.play(self.eat_sound)
+            # REWARDS FOR COINS
+            if pellet.name == "pellet":
+                self.reward = 1
             self.pelletsEaten += 1
             self.score += pellet.points
             if (self.pelletsEaten == 70 or self.pelletsEaten == 140):
@@ -233,6 +243,7 @@ class GameController(object):
                         self.nodes, self.sheet, levelmap["fruit"])
             self.pellets.pelletList.remove(pellet)
             if pellet.name == "powerpellet":
+                self.reward = 5
                 self.ghosts.resetPoints()
                 self.ghosts.freightMode()
             if self.pellets.isEmpty():
@@ -241,6 +252,8 @@ class GameController(object):
                 self.ghosts.hide()
                 self.pause.startTimer(3, "clear")
                 self.flashBackground = True
+        else:
+            self.reward -= 5
 
     def checkGhostEvents(self):
         self.ghosts.release(self.pelletsEaten)
@@ -286,7 +299,7 @@ class GameController(object):
 
     def render(self):
         self.screen.blit(self.maze.background, (0, 0))
-        self.nodes.render(self.screen)
+        # self.nodes.render(self.screen)
         self.pellets.render(self.screen)
         if self.fruit is not None:
             self.fruit.render(self.screen)
@@ -404,9 +417,46 @@ def runGame():
     game.run()
 
 
+def play_step(action):
+    temp_action = max(action)
+    actionIndex = action.index(temp_action)
+
+    if actionIndex == 0:
+        print("Move Up")
+        keyEvent = pygame.event.Event(
+            pygame.locals.KEYDOWN, key=pygame.locals.K_UP)
+        pygame.event.post(keyEvent)
+    elif actionIndex == 1:
+        print("Move Down")
+        keyEvent = pygame.event.Event(
+            pygame.locals.KEYDOWN, key=pygame.locals.K_DOWN)
+        pygame.event.post(keyEvent)
+    elif actionIndex == 2:
+        print("Move Left")
+        keyEvent = pygame.event.Event(
+            pygame.locals.KEYDOWN, key=pygame.locals.K_LEFT)
+        pygame.event.post(keyEvent)
+    elif actionIndex == 3:
+        print("Move Right")
+        keyEvent = pygame.event.Event(
+            pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
+        pygame.event.post(keyEvent)
+
+    # Check GameOver
+    gameover = game.gameover
+    if gameover:
+        game.reward = -20
+
+    return game.reward, gameover, game.score
+
+
 def trainAI():
-    global game
     gameReady = False
+    plot_scores = []
+    plot_mean_scores = []
+    total_score = 0
+    record = 0
+    agent = Agent()
     while not gameReady:
         try:
             print(game.state)
@@ -422,7 +472,51 @@ def trainAI():
         except AttributeError:
             print("Waiting for pacman..")
             time.sleep(0.1)
-    for i in range(100):
+
+    # TRAINING LOOP
+    if game.state == "rl":
+        while True:
+            game.reward = 0
+            old_state = game.get_state()
+            final_move = agent.get_action(old_state)
+            reward, done, score = play_step(final_move)
+            new_state = game.get_state()
+
+            # Train short memory
+            agent.train_short_memory(
+                old_state, final_move, reward, new_state, done)
+
+            # Remember
+            agent.remember(old_state, final_move, reward, new_state, done)
+
+            if done:
+                # Train long memory (replay memory)
+                game.restartLevel()
+                time.sleep(3)
+                keyEvent = pygame.event.Event(
+                    pygame.locals.KEYDOWN, key=pygame.locals.K_SPACE)
+                pygame.event.post(keyEvent)
+                agent.n_games += 1
+                agent.train_long_memory()
+
+                if score > record:
+                    record = score
+                    agent.model.save()
+
+                # Plotting Graph
+                print(f"Game {agent.n_games}, Score: {score}, Record: {record}")
+
+                plot_scores.append(score)
+                total_score += score
+                mean_score = total_score / agent.n_games
+                plot_mean_scores.append(mean_score)
+                plot(plot_scores, plot_mean_scores)
+                time.sleep(3)
+                keyEvent = pygame.event.Event(
+                    pygame.locals.KEYDOWN, key=pygame.locals.K_SPACE)
+                pygame.event.post(keyEvent)
+
+    # for i in range(100):
         # action = random.randint(0, 3)
         # if action == 0:
         #     print("Move Up")
@@ -440,8 +534,25 @@ def trainAI():
         #     print("Move Right")
         #     keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
         #     pygame.event.post(keyEvent)
-        game.get_state()
-        time.sleep(1)
+        # print(game.score)
+        # game.get_state()
+        # time.sleep(1)
+
+
+def plot(scores, mean_scores):
+    display.clear_output(wait=True)
+    display.display(plt.gcf())
+    plt.clf()
+    plt.title('Training...')
+    plt.xlabel('Number of Games')
+    plt.ylabel('Score')
+    plt.plot(scores)
+    plt.plot(mean_scores)
+    plt.ylim(ymin=0)
+    plt.text(len(scores)-1, scores[-1], str(scores[-1]))
+    plt.text(len(mean_scores)-1, mean_scores[-1], str(mean_scores[-1]))
+    plt.show(block=False)
+    plt.pause(.1)
 
 
 global game
@@ -460,4 +571,4 @@ if __name__ == "__main__":
             [t.join(1) for t in threads]
         except KeyboardInterrupt:
             game.running = False
-            sys.exit()
+            os._exit(1)
