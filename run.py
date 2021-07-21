@@ -17,41 +17,44 @@ import sys
 import threading
 import time
 
+
 class GameController(object):
-    ## change or delete as necessary, unused for now
+    pygame.display.set_caption('Pacman')
+    # change or delete as necessary, unused for now
     AI_UP = 0
     AI_DOWN = 1
     AI_LEFT = 2
     AI_RIGHT = 3
-    ## check also if need self.clear
+    # check also if need self.clear
 
     directionMapper = {"0_-1": 0, "0_1": 1, "-1_0": 2, "1_0": 3}
 
-    ## for detection of object in front and beside pacman, since the game is not discrete
-    ## may need tweaking
+    # for detection of object in front and beside pacman, since the game is not discrete
+    # may need tweaking
     MULTIPLIER_FRONT = 0.5
     MULTIPLIER_SIDE = 1.5
 
     def get_direction(self, state, index, diffX, diffY):
         if abs(diffX) <= TILEWIDTH * self.MULTIPLIER_SIDE and abs(diffY) < TILEHEIGHT * self.MULTIPLIER_FRONT:
-            if diffX > 0: # Left
+            if diffX > 0:  # Left
                 state[index][2] = 1
-            else: # Right
+            else:  # Right
                 state[index][3] = 1
         elif abs(diffX) <= TILEWIDTH * self.MULTIPLIER_FRONT and abs(diffY) <= TILEHEIGHT * self.MULTIPLIER_SIDE:
-            if diffY > 0: # Up
+            if diffY > 0:  # Up
                 state[index][0] = 1
-            else: # Down
+            else:  # Down
                 state[index][1] = 1
 
     def get_state(self):
         # Up Down Left Right
         # Direction, Danger, Coin, Powerup, Ghost, Cherry, Wall
-        state = np.zeros([7,4])
-        direction = str(self.pacman.direction.x) + "_" + str(self.pacman.direction.y)
+        state = np.zeros([7, 4])
+        direction = str(self.pacman.direction.x) + "_" + \
+            str(self.pacman.direction.y)
         if direction in self.directionMapper:
             state[0][self.directionMapper[direction]] = 1
-        
+
         for ghost in self.ghosts:
             diffX = self.pacman.position.x - ghost.position.x
             diffY = self.pacman.position.y - ghost.position.y
@@ -63,17 +66,17 @@ class GameController(object):
             diffY = self.pacman.position.y - pellet.position.y
             index = 3 if pellet.name == "powerpellet" else 2
             self.get_direction(state, index, diffX, diffY)
-            
+
         if self.fruit is not None:
             diffX = self.pacman.position.x - self.fruit.position.x
             diffY = self.pacman.position.y - self.fruit.position.y
             index = 5
             self.get_direction(state, index, diffX, diffY)
 
-        print(state)
+        # print(state)
         # return state
-    
-    ## any use?
+
+    # any use?
 
     # def move(self, action):
     #     if action == self.AI_UP:
@@ -92,7 +95,7 @@ class GameController(object):
     #         # print("Move Right")
     #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
     #         pygame.event.post(keyEvent)
-    
+
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode(SCREENSIZE, 0, 32)
@@ -141,7 +144,7 @@ class GameController(object):
         self.gameover = False
         self.maze.reset()
         self.flashBackground = False
-    
+
     def startAIGame(self):
         print("Starting AI Learning")
         self.level = LevelController('rl')
@@ -157,7 +160,6 @@ class GameController(object):
         self.pelletsEaten = 0
         self.fruit = None
         self.pause.force(False)
-        self.text.showReady()
         self.text.updateLevel(self.level.level+1)
         self.gameover = False
         self.maze.reset()
@@ -284,7 +286,7 @@ class GameController(object):
 
     def render(self):
         self.screen.blit(self.maze.background, (0, 0))
-        # self.nodes.render(self.screen)
+        self.nodes.render(self.screen)
         self.pellets.render(self.screen)
         if self.fruit is not None:
             self.fruit.render(self.screen)
@@ -366,7 +368,7 @@ class GameController(object):
                 if not self.gameover:
                     dt = self.clock.tick(30) / 1000.0
                     if not self.pause.paused:
-                        self.pacman.update(dt)
+                        self.pacman.updateAI(dt)
                         self.ghosts.update(dt, self.pacman)
                         if self.fruit is not None:
                             self.fruit.update(dt)
@@ -395,10 +397,12 @@ class GameController(object):
         pygame.quit()
         sys.exit()
 
+
 def runGame():
     global game
     game = GameController()
     game.run()
+
 
 def trainAI():
     global game
@@ -439,17 +443,18 @@ def trainAI():
         game.get_state()
         time.sleep(1)
 
+
 global game
 
 if __name__ == "__main__":
     threads = []
-    
+
     threads.append(threading.Thread(target=runGame, daemon=True))
     threads.append(threading.Thread(target=trainAI, daemon=True))
 
     for thread in threads:
         thread.start()
-    
+
     while True:
         try:
             [t.join(1) for t in threads]

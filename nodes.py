@@ -35,7 +35,7 @@ class NodeGroup(object):
         self.grid = None
         self.nodeStack = Stack()
         self.pathSymbols = ["p", "P"]
-        self.portalSymbols = ["1", "2"]####
+        self.portalSymbols = ["1", "2"]
         self.nodeSymbols = ["+", "n", "N", "H", "S", "Y", "F"] + self.portalSymbols
         self.grid = self.readMazeFile(level)
         self.homegrid = self.getHomeArray()
@@ -62,7 +62,6 @@ class NodeGroup(object):
             if '\r' in temp:
                 temp = temp.rstrip('\r')
             lines.append(temp)
-        #lines = [line.rstrip('\n') for line in f]
         return [line.split(' ') for line in lines]
     
     def createNodeList(self, grid, nodeList):
@@ -197,17 +196,18 @@ class NodeGroup(object):
             node.position += mid
             self.addNode(node, self.nodeList)###
             
-        #print("Number of nodes: " + str(len(self.nodeList)))
+        # print("Number of nodes: " + str(len(self.nodeList)))
         #print("Node A: " + str(nodeA.position) + " <==== " + str(nodeA.neighbors[LEFT].position))
         #print("Node B: " + str(nodeB.position) + " ====> " + str(nodeB.neighbors[RIGHT].position))
 
         A = self.getNodeFromNode(nodeA, self.nodeList)
-        #print(N.position)
+        # print(N.position)
         B = self.getNodeFromNode(nodeB, self.nodeList)
         #print(N.position)
         H = self.getNodeFromNode(self.homeList[0], self.nodeList)
         #print(N.position)
         #print("")
+        
         A.neighbors[LEFT] = H
         B.neighbors[RIGHT] = H
         H.neighbors[RIGHT] = A

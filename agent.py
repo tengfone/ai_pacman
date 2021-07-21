@@ -4,20 +4,26 @@ import numpy as np
 from run import GameController
 from collections import deque
 from constants import *
+from model import LinearQNet, TrainerQ
+import matplotlib.pyplot as plt
+from IPython import display
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
 LR = 0.001
+plt.ion()
 
+########### TODO: Edit get_state and create function play_step in run.py ###########
 
 class Agent:
     def __init__(self) -> None:
         self.n_games = 0
         self.epsilon = 0  # Randomness
-        self.gamma = 0  # Discount rate
+        self.gamma = 0.8  # Discount rate Must be < 1
         self.memory = deque(maxlen=MAX_MEMORY)  # Popleft if over max mem
-        self.model = None
-        self.trainer = None
+        # 28 is number of features, 4 is up,down,left,right
+        self.model = LinearQNet(28, 256, 3)
+        self.trainer = TrainerQ(self.model, lr=LR, gamma=self.gamma)
 
     def get_state(self, game):
 
@@ -27,22 +33,41 @@ class Agent:
         directionDown = DOWN
         directionRight = RIGHT
 
+        # Temporary, TODO: edit
+        dangerUp, dangerDown, dangerLeft, dangerRight = random.randint(0, 3)
+        coinUp, coinDown, coinLeft, coinRight = random.randint(0, 3)
+        powerUp, powerDown, powerLeft, powerRight = random.randint(0, 3)
+        ghostUp, ghostDown, ghostLeft, ghostRight = random.randint(0, 3)
+        cherryUp, cherryDown, cherryLeft, cherryRight = random.randint(0, 3)
+        wallUp, wallDown, wallLeft, WallRight = random.randint(0, 3)
+
         state = [
             # Move Direction
-
+            directionUp, directionDown, directionLeft, directionRight,
             # Danger
-
-            # Power Up Location
+            dangerUp, dangerDown, dangerLeft, dangerRight,
+            # Coin Location
+            coinUp, coinDown, coinLeft, coinRight,
+            # Power Up
+            powerUp, powerDown, powerLeft, powerRight,
+            # Edible Ghost
+            ghostUp, ghostDown, ghostLeft, ghostRight,
+            # Cherry
+            cherryUp, cherryDown, cherryLeft, cherryRight,
+            # Wall
+            wallUp, wallDown, wallLeft, WallRight
         ]
 
         return np.array(state, dtype=int)
 
     def remember(self, state, action, reward, next_state, done):
+        # popleft if MAX_MEMORY is reached
         self.memory.append((state, action, reward, next_state, done))
 
     def train_long_memory(self):
-        if len(self.memory) > BATCH_SIZE :
-            mini_sample = random.sample(self.memory, BATCH_SIZE) # Rt a list of tuple
+        if len(self.memory) > BATCH_SIZE:
+            mini_sample = random.sample(
+                self.memory, BATCH_SIZE)  # Rt a list of tuple
         else:
             mini_sample = self.memory
 
@@ -56,17 +81,34 @@ class Agent:
     def get_action(self, state):
         # Random Moves: tradeoff between exploration | exploitation
         self.epsilon = 80 - self.n_games
-        final_move = [0,0,0,0]
-        if random.randint(0,200) < self.epsilon:
-            move = random.randint(0,3)
+        final_move = [0, 0, 0, 0]
+        if random.randint(0, 200) < self.epsilon:
+            move = random.randint(0, 3)
             final_move[move] = 1
         else:
-            state0 = torch.tensor(state,dtype=torch.float)
-            prediction = self.model.predict(state0)
-            move = torch.argmax(prediction).item() # get best move [0,0,1,0]
+            state0 = torch.tensor(state, dtype=torch.float)
+            prediction = self.model(state0)
+            move = torch.argmax(prediction).item()  # get best move [0,0,1,0]
             final_move[move] = 1
 
         return final_move
+
+
+def plot(scores, mean_scores):
+    display.clear_output(wait=True)
+    display.display(plt.gcf())
+    plt.clf()
+    plt.title('Training...')
+    plt.xlabel('Number of Games')
+    plt.ylabel('Score')
+    plt.plot(scores)
+    plt.plot(mean_scores)
+    plt.ylim(ymin=0)
+    plt.text(len(scores)-1, scores[-1], str(scores[-1]))
+    plt.text(len(mean_scores)-1, mean_scores[-1], str(mean_scores[-1]))
+    plt.show(block=False)
+    plt.pause(.1)
+
 
 def train():
     plot_scores = []
@@ -101,9 +143,15 @@ def train():
 
             if score > record:
                 record = score
-                # TODO: agent.model.save()
+                agent.model.save()
 
             print(f"Game {agent.n_games}, Score: {score}, Record: {record}")
+
+            plot_scores.append(score)
+            total_score += score
+            mean_score = total_score / agent.n_games
+            plot_mean_scores.append(mean_score)
+            plot(plot_scores, plot_mean_scores)
 
 
 if __name__ == '__main__':
