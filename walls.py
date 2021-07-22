@@ -21,8 +21,6 @@ class WallGroup(object):
             for col in range(cols):
                 if (grid[row][col] in self.wallSymbol):
                     self.wallList.append(Wall(col*TILEWIDTH, row*TILEHEIGHT))
-        for wall in self.wallList:
-            print(wall.position)
                     
     def readMazeFile(self, textfile):
         f = open(textfile, "r")

@@ -15,14 +15,17 @@ plt.ion()
 
 
 class Agent:
-    def __init__(self) -> None:
+    def __init__(self, load) -> None:
         self.n_games = 0
+        self.record = 0
         self.epsilon = 0  # Randomness
         self.gamma = 0.8  # Discount rate Must be < 1
         self.memory = deque(maxlen=MAX_MEMORY)  # Popleft if over max mem
         # 28 is number of features, 4 is up,down,left,right
         self.model = LinearQNet(28, 256, 4)
-        self.trainer = TrainerQ(self.model, lr=LR, gamma=self.gamma)
+        self.trainer = TrainerQ(self.model, lr=LR, gamma=self.gamma, load = load)
+        if load:
+            self.n_games, self.record = self.trainer.load()
 
     def remember(self, state, action, reward, next_state, done):
         # popleft if MAX_MEMORY is reached
@@ -44,9 +47,9 @@ class Agent:
 
     def get_action(self, state):
         # Random Moves: tradeoff between exploration | exploitation
-        self.epsilon = 80 - self.n_games
+        self.epsilon = self.n_games
         final_move = [0, 0, 0, 0]
-        if random.randint(0, 200) < self.epsilon:
+        if self.epsilon <= 10:
             move = random.randint(0, 3)
             final_move[move] = 1
         else:

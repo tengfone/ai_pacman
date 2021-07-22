@@ -23,7 +23,9 @@ import matplotlib.pyplot as plt
 from IPython import display
 
 GHOST_INDEX = 1
-
+PELLET_INDEX = 2
+POWERPELLET_INDEX = 3
+WALL_INDEX = 6
 
 class GameController(object):
     pygame.display.set_caption('Pacman')
@@ -32,7 +34,6 @@ class GameController(object):
     AI_DOWN = 1
     AI_LEFT = 2
     AI_RIGHT = 3
-    # check also if need self.clear
 
     directionMapper = {"0_-1": 0, "0_1": 1, "-1_0": 2, "1_0": 3}
 
@@ -53,7 +54,7 @@ class GameController(object):
                 state[index][0] = 1
             else:  # Down
                 state[index][1] = 1
-
+    
     def get_state(self):
         # Up Down Left Right
         # Direction, Danger, Coin, Powerup, Ghost, Cherry, Wall
@@ -72,7 +73,7 @@ class GameController(object):
         for pellet in self.pellets.pelletList:
             diffX = self.pacman.position.x - pellet.position.x
             diffY = self.pacman.position.y - pellet.position.y
-            index = 3 if pellet.name == "powerpellet" else 2
+            index = POWERPELLET_INDEX if pellet.name == "powerpellet" else PELLET_INDEX
             self.get_direction(state, index, diffX, diffY)
         
         if self.fruit is not None:
@@ -84,12 +85,77 @@ class GameController(object):
         for wall in self.walls.wallList:
             diffX = self.pacman.position.x - wall.position.x
             diffY = self.pacman.position.y - wall.position.y
-            index = 6
+            index = WALL_INDEX
             self.get_direction(state, index, diffX, diffY, self.WALL_MULTIPLER)
 
         # print(state)
         state = state.reshape(-1)
         return np.array(state, dtype=int)
+    
+    def get_direction_closest(self, state, index, diffX, diffY):
+        if diffX >= 0:
+            if (diffX < state[index][2] or state[index][2] == 512):  # Left
+                if diffY > 0:
+                    if (diffY < state[index][0] or state[index][0] == 512):  # Up
+                        state[index][0] = diffY
+                        state[index][2] = diffX
+                elif diffY < 0:
+                    if (abs(diffY) < state[index][1] or state[index][1] == 512):  # Down
+                        state[index][1] = abs(diffY)
+                        state[index][2] = diffX
+        elif diffX < 0:
+            if (abs(diffX) < state[index][3] or state[index][3] == 512):  # Right
+                if diffY > 0:
+                    if (diffY < state[index][0] or state[index][0] == 512):  # Up
+                        state[index][0] = diffY
+                        state[index][3] = abs(diffX)
+                elif diffY < 0:
+                    if (abs(diffY) < state[index][1] or state[index][1] == 512):  # Down
+                        state[index][1] = abs(diffY)
+                        state[index][3] = abs(diffX)
+
+    def get_state_closest(self):
+        # Up Down Left Right
+        # Direction, Danger, Coin, Powerup, Ghost, Cherry, Wall
+        state = np.append(np.zeros([1, 4]), np.full([6,4], 512), axis = 0)
+        print(state)
+        direction = str(self.pacman.direction.x) + "_" + \
+            str(self.pacman.direction.y)
+        if direction in self.directionMapper:
+            state[0][self.directionMapper[direction]] = 1
+
+        for ghost in self.ghosts:
+            diffX = self.pacman.position.x - ghost.position.x
+            diffY = self.pacman.position.y - ghost.position.y
+            index = 4 if ghost.mode.name == "FREIGHT" else GHOST_INDEX
+            self.get_direction_closest(state, index, diffX, diffY)
+
+        for pellet in self.pellets.pelletList:
+            diffX = self.pacman.position.x - pellet.position.x
+            diffY = self.pacman.position.y - pellet.position.y
+            index = POWERPELLET_INDEX if pellet.name == "powerpellet" else PELLET_INDEX
+            self.get_direction_closest(state, index, diffX, diffY)
+        
+        if self.fruit is not None:
+            diffX = self.pacman.position.x - self.fruit.position.x
+            diffY = self.pacman.position.y - self.fruit.position.y
+            index = 5
+            self.get_direction_closest(state, index, diffX, diffY)
+        
+        for wall in self.walls.wallList:
+            diffX = self.pacman.position.x - wall.position.x
+            diffY = self.pacman.position.y - wall.position.y
+            index = WALL_INDEX
+            self.get_direction_closest(state, index, diffX, diffY)
+
+        # print(state)
+        state = state.reshape(-1)
+        # state[4:] *= (1 / state[4:].max())
+        state[4:] = state[4:] / 512
+        state[4:] = 1 - state[4:]
+        # state[4:][state[4:] ==  1] = 0
+        print(state)
+        return np.array(state)
 
     # any use?
 
@@ -132,7 +198,6 @@ class GameController(object):
         self.running = True
         self.reward = 0
         self.waitForCheck = True
-        # self.clear = False
 
     def introGame(self):
         print("Intro Session")
@@ -212,7 +277,6 @@ class GameController(object):
         self.pause.force(True)
         self.fruit = None
         self.flashBackground = False
-        # self.clear = False
         self.maze.reset()
 
     def checkEvents(self):
@@ -260,7 +324,6 @@ class GameController(object):
                 self.ghosts.resetPoints()
                 self.ghosts.freightMode()
             if self.pellets.isEmpty():
-                # self.clear = True
                 self.pacman.visible = False
                 self.ghosts.hide()
                 self.pause.startTimer(3, "clear")
@@ -456,19 +519,32 @@ def play_step(action, old_state):
         pygame.event.post(keyEvent)
     
     while game.waitForCheck:
-        continue
+        if game.pause.paused:
+            keyEvent = pygame.event.Event(
+                pygame.locals.KEYDOWN, key=pygame.locals.K_SPACE)
+            pygame.event.post(keyEvent)
+            time.sleep(0.1)
+
     game.waitForCheck = True
 
-    if old_state[24+actionIndex] == 1:
+    if old_state[4*WALL_INDEX+actionIndex] > 0.9:
         game.reward -= 50
     
-    if old_state[4*GHOST_INDEX+actionIndex] == 1:
+    if old_state[4*GHOST_INDEX+actionIndex] > 0.9:
         game.reward -= 50
+    
+    if old_state[4*PELLET_INDEX+actionIndex] > 0.9:
+        game.reward += 5
+
+    if old_state[4*POWERPELLET_INDEX+actionIndex] > 0.9:
+        game.reward += 15
 
     # Check GameOver
     gameover = game.gameover
     if gameover:
         game.reward = -20
+    print(actionIndex, game.reward)
+    print()
 
     return game.reward, gameover, game.score
 
@@ -478,8 +554,8 @@ def trainAI():
     plot_scores = []
     plot_mean_scores = []
     total_score = 0
-    record = 0
-    agent = Agent()
+    n_games_session = 0
+    agent = Agent(load=True)
     while not gameReady:
         try:
             print(game.state)
@@ -520,46 +596,50 @@ def trainAI():
                     pygame.locals.KEYDOWN, key=pygame.locals.K_SPACE)
                 pygame.event.post(keyEvent)
                 agent.n_games += 1
+                n_games_session += 1
                 agent.train_long_memory()
 
-                if score > record:
-                    record = score
-                    agent.model.save()
+                if score > agent.record or agent.n_games % 5 == 0:
+                    print("Saving model")
+                    if score > agent.record:
+                        print("Saving model with highscore")
+                        agent.record = score
+                    agent.trainer.save(agent.n_games, agent.record)
 
                 # Plotting Graph
-                print(f"Game {agent.n_games}, Score: {score}, Record: {record}")
+                print(f"Game {agent.n_games}, Score: {score}, Record: {agent.record}")
 
                 plot_scores.append(score)
                 total_score += score
-                mean_score = total_score / agent.n_games
+                mean_score = total_score / n_games_session
                 plot_mean_scores.append(mean_score)
                 plot(plot_scores, plot_mean_scores)
                 time.sleep(3)
                 keyEvent = pygame.event.Event(
                     pygame.locals.KEYDOWN, key=pygame.locals.K_SPACE)
                 pygame.event.post(keyEvent)
-    # else:
-    #     for i in range(100):
-    #         action = random.randint(0, 3)
-    #         if action == 0:
-    #             print("Move Up")
-    #             keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_UP)
-    #             pygame.event.post(keyEvent)
-    #         elif action == 1:
-    #             print("Move Down")
-    #             keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_DOWN)
-    #             pygame.event.post(keyEvent)
-    #         elif action == 2:
-    #             print("Move Left")
-    #             keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_LEFT)
-    #             pygame.event.post(keyEvent)
-    #         elif action == 3:
-    #             print("Move Right")
-    #             keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
-    #             pygame.event.post(keyEvent)
-    #         print(game.score)
-    #         game.get_state()
-    #         time.sleep(1)
+    else:
+        for i in range(100):
+            action = random.randint(0, 3)
+            if action == 0:
+                print("Move Up")
+                keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_UP)
+                pygame.event.post(keyEvent)
+            elif action == 1:
+                print("Move Down")
+                keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_DOWN)
+                pygame.event.post(keyEvent)
+            elif action == 2:
+                print("Move Left")
+                keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_LEFT)
+                pygame.event.post(keyEvent)
+            elif action == 3:
+                print("Move Right")
+                keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
+                pygame.event.post(keyEvent)
+            print(game.score)
+            print(game.get_state_closest())
+            time.sleep(1)
 
 
 def plot(scores, mean_scores):

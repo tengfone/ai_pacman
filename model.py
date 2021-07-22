@@ -16,22 +16,46 @@ class LinearQNet(nn.Module):
         x = self.linear2(x)
         return x
 
-    def save(self, file_name='model.pth'):
-        model_folder_path = './model'
-        if not os.path.exists(model_folder_path):
-            os.makedirs(model_folder_path)
-
-        file_name = os.path.join(model_folder_path, file_name)
-        torch.save(self.state_dict(), file_name)
-
-
 class TrainerQ:
-    def __init__(self, model, lr, gamma) -> None:
+    def __init__(self, model, lr, gamma, load) -> None:
         self.model = model
         self.gamma = gamma
         self.lr = lr
         self.optimizer = optim.Adam(model.parameters(), lr=self.lr)
         self.criterion = nn.MSELoss()
+        self.steps = 0
+        if load:
+            self.load()
+    
+    def save(self, n_games, record, file_name='model.pth'):
+        model_folder_path = './model'
+        if not os.path.exists(model_folder_path):
+            os.makedirs(model_folder_path)
+
+        file_name = os.path.join(model_folder_path, file_name)
+        torch.save({
+            'steps': self.steps,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'loss': self.loss,
+            'n_games': n_games,
+            'record': record
+            }, file_name)
+    
+    def load(self, file_name='model.pth'):
+        model_folder_path = './model'
+        if os.path.exists(model_folder_path):
+            file_name = os.path.join(model_folder_path, file_name)
+            # self.model.load_state_dict(torch.load(file_name))
+            # print("model loaded")
+            checkpoint = torch.load(file_name)
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            self.steps = checkpoint['steps']
+            self.loss = checkpoint['loss']
+            return checkpoint['n_games'], checkpoint['record']
+        else:
+            return 0, 0
 
     def train_step(self, state, action, reward, next_state, done):
         state = torch.tensor(state, dtype=torch.float)
@@ -60,7 +84,8 @@ class TrainerQ:
             target[idx][torch.argmax(action[idx]).item()] = Q_new
 
         self.optimizer.zero_grad()
-        loss = self.criterion(target, pred)
-        loss.backward()
+        self.loss = self.criterion(target, pred)
+        self.loss.backward()
 
         self.optimizer.step()
+        self.steps += 1
