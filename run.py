@@ -21,11 +21,14 @@ import os
 from agent import *
 import matplotlib.pyplot as plt
 from IPython import display
+import multiprocessing
 
 GHOST_INDEX = 1
 PELLET_INDEX = 2
 POWERPELLET_INDEX = 3
 WALL_INDEX = 6
+
+global plotResults
 
 class GameController(object):
     pygame.display.set_caption('Pacman')
@@ -179,6 +182,7 @@ class GameController(object):
 
     def __init__(self):
         pygame.init()
+        self.plotted = False
         self.screen = pygame.display.set_mode(SCREENSIZE, 0, 32)
         self.background = None
         self.background_flash = None
@@ -362,6 +366,7 @@ class GameController(object):
     def resolveDeath(self):
         if self.pacman.lives == 0:
             self.gameover = True
+            self.plotted = False
             self.pacman.visible = False
             self.text.showGameOver()
         else:
@@ -418,6 +423,7 @@ class GameController(object):
         screen.blit(text, pos)
 
     def run(self):
+        
         while self.running:
             if self.state == 'intro':
                 self.start_events()
@@ -479,6 +485,18 @@ class GameController(object):
                     self.pause.update(dt)
                     self.pellets.update(dt)
                     self.text.update(dt)
+                else:
+                    global plotResults
+
+                    try:
+                        if not self.plotted:
+                            plot(plotResults[0], plotResults[1])
+                            self.plotted = True
+
+
+                    except NameError:
+                        pass
+                
                 self.checkEvents()
                 self.text.updateScore(self.score)
                 self.render()
@@ -487,10 +505,7 @@ class GameController(object):
         sys.exit()
 
 
-def runGame():
-    global game
-    game = GameController()
-    game.run()
+
 
 
 def play_step(action, old_state):
@@ -613,7 +628,11 @@ def trainAI():
                 total_score += score
                 mean_score = total_score / n_games_session
                 plot_mean_scores.append(mean_score)
-                plot(plot_scores, plot_mean_scores)
+
+                global plotResults
+
+                plotResults = [plot_scores, plot_mean_scores]
+                
                 time.sleep(3)
                 keyEvent = pygame.event.Event(
                     pygame.locals.KEYDOWN, key=pygame.locals.K_SPACE)
@@ -660,14 +679,28 @@ def plot(scores, mean_scores):
 
 global game
 
+def continue_pygame_loop():
+    pygame.mainloop(0.1)
+    yield
+
 if __name__ == "__main__":
+    manager = multiprocessing.Manager()
+    final_list = manager.list()
+
+
+
     threads = []
 
-    threads.append(threading.Thread(target=runGame, daemon=True))
+    # threads.append(threading.Thread(target=runGame, daemon=True))
+    # def runGame():
+    # global game
+    
     threads.append(threading.Thread(target=trainAI, daemon=True))
 
     for thread in threads:
         thread.start()
+    game = GameController()
+    game.run()
 
     while True:
         try:
