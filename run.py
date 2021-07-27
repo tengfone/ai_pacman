@@ -19,13 +19,17 @@ import threading
 import time
 import os
 from agent import *
+import matplotlib
+matplotlib.use('TKAgg', force=True)
 import matplotlib.pyplot as plt
 from IPython import display
 import multiprocessing
+import math
 
-GHOST_INDEX = 1
+DANGER_INDEX = 1
 PELLET_INDEX = 2
 POWERPELLET_INDEX = 3
+GHOST_INDEX = 4
 WALL_INDEX = 6
 
 global plotResults
@@ -43,16 +47,16 @@ class GameController(object):
     # for detection of object in front and beside pacman, since the game is not discrete
     # may need tweaking
     MULTIPLIER_FRONT = 1
-    MULTIPLIER_SIDE = 2
-    WALL_MULTIPLER = 0.25
+    MULTIPLIER_SIDE = 1
+    WALL_MULTIPLER = 1
 
     def get_direction(self, state, index, diffX, diffY, wall_multiplier = 1):
-        if abs(diffX) <= TILEWIDTH * self.MULTIPLIER_SIDE * wall_multiplier and abs(diffY) < TILEHEIGHT * self.MULTIPLIER_FRONT * wall_multiplier:
+        if abs(diffX) <= TILEWIDTH * self.MULTIPLIER_SIDE * wall_multiplier and diffY == 0:
             if diffX > 0:  # Left
                 state[index][2] = 1
             else:  # Right
                 state[index][3] = 1
-        elif abs(diffX) <= TILEWIDTH * self.MULTIPLIER_FRONT * wall_multiplier and abs(diffY) <= TILEHEIGHT * self.MULTIPLIER_SIDE * wall_multiplier:
+        elif abs(diffY) <= TILEHEIGHT * self.MULTIPLIER_SIDE * wall_multiplier and diffX == 0:
             if diffY > 0:  # Up
                 state[index][0] = 1
             else:  # Down
@@ -66,28 +70,31 @@ class GameController(object):
             str(self.pacman.direction.y)
         if direction in self.directionMapper:
             state[0][self.directionMapper[direction]] = 1
+        
+        roundedPacmanPositionX = TILEWIDTH * math.ceil(self.pacman.position.x/TILEWIDTH)
+        roundedPacmanPositionY = TILEHEIGHT * math.ceil(self.pacman.position.y/TILEHEIGHT)
 
         for ghost in self.ghosts:
-            diffX = self.pacman.position.x - ghost.position.x
-            diffY = self.pacman.position.y - ghost.position.y
-            index = 4 if ghost.mode.name == "FREIGHT" else GHOST_INDEX
+            diffX = roundedPacmanPositionX - math.ceil(ghost.position.x/TILEWIDTH)
+            diffY = roundedPacmanPositionY - math.ceil(ghost.position.y/TILEHEIGHT)
+            index = GHOST_INDEX if ghost.mode.name == "FREIGHT" else DANGER_INDEX
             self.get_direction(state, index, diffX, diffY)
 
         for pellet in self.pellets.pelletList:
-            diffX = self.pacman.position.x - pellet.position.x
-            diffY = self.pacman.position.y - pellet.position.y
+            diffX = roundedPacmanPositionX - pellet.position.x
+            diffY = roundedPacmanPositionY - pellet.position.y
             index = POWERPELLET_INDEX if pellet.name == "powerpellet" else PELLET_INDEX
             self.get_direction(state, index, diffX, diffY)
         
         if self.fruit is not None:
-            diffX = self.pacman.position.x - self.fruit.position.x
-            diffY = self.pacman.position.y - self.fruit.position.y
+            diffX = roundedPacmanPositionX - self.fruit.position.x
+            diffY = roundedPacmanPositionY - self.fruit.position.y
             index = 5
             self.get_direction(state, index, diffX, diffY)
         
         for wall in self.walls.wallList:
-            diffX = self.pacman.position.x - wall.position.x
-            diffY = self.pacman.position.y - wall.position.y
+            diffX = roundedPacmanPositionX - wall.position.x
+            diffY = roundedPacmanPositionY - wall.position.y
             index = WALL_INDEX
             self.get_direction(state, index, diffX, diffY, self.WALL_MULTIPLER)
 
@@ -130,7 +137,7 @@ class GameController(object):
         for ghost in self.ghosts:
             diffX = self.pacman.position.x - ghost.position.x
             diffY = self.pacman.position.y - ghost.position.y
-            index = 4 if ghost.mode.name == "FREIGHT" else GHOST_INDEX
+            index = 4 if ghost.mode.name == "FREIGHT" else DANGER_INDEX
             self.get_direction_closest(state, index, diffX, diffY)
 
         for pellet in self.pellets.pelletList:
@@ -313,8 +320,6 @@ class GameController(object):
         pellet = self.pacman.eatPellets(self.pellets.pelletList)
         if pellet:
             # REWARDS FOR COINS
-            if pellet.name == "pellet":
-                self.reward = 5
             self.pelletsEaten += 1
             self.score += pellet.points
             if (self.pelletsEaten == 70 or self.pelletsEaten == 140):
@@ -324,7 +329,6 @@ class GameController(object):
                         self.nodes, self.sheet, levelmap["fruit"])
             self.pellets.pelletList.remove(pellet)
             if pellet.name == "powerpellet":
-                self.reward = 15
                 self.ghosts.resetPoints()
                 self.ghosts.freightMode()
             if self.pellets.isEmpty():
@@ -332,8 +336,6 @@ class GameController(object):
                 self.ghosts.hide()
                 self.pause.startTimer(3, "clear")
                 self.flashBackground = True
-        else:
-            self.reward -= 1
 
     def checkGhostEvents(self):
         self.ghosts.release(self.pelletsEaten)
@@ -504,10 +506,6 @@ class GameController(object):
         pygame.quit()
         sys.exit()
 
-
-
-
-
 def play_step(action, old_state):
     temp_action = max(action)
     actionIndex = action.index(temp_action)
@@ -541,12 +539,18 @@ def play_step(action, old_state):
             time.sleep(0.1)
 
     game.waitForCheck = True
+    gameover = game.gameover
 
     if old_state[4*WALL_INDEX+actionIndex] > 0.9:
         game.reward -= 50
     
-    if old_state[4*GHOST_INDEX+actionIndex] > 0.9:
+    if old_state[4*DANGER_INDEX+actionIndex] > 0.9:
         game.reward -= 50
+        if gameover:
+            game.reward -= -200
+    
+    if old_state[4*GHOST_INDEX+actionIndex] > 0.9:
+        game.reward += 200
     
     if old_state[4*PELLET_INDEX+actionIndex] > 0.9:
         game.reward += 5
@@ -555,11 +559,9 @@ def play_step(action, old_state):
         game.reward += 15
 
     # Check GameOver
-    gameover = game.gameover
-    if gameover:
-        game.reward = -20
+
     print(actionIndex, game.reward)
-    print()
+    # print()
 
     return game.reward, gameover, game.score
 
@@ -592,8 +594,13 @@ def trainAI():
         while True:
             game.reward = 0
             old_state = game.get_state()
+            roundedPacmanPositionX = TILEWIDTH * math.ceil(game.pacman.position.x/TILEWIDTH)
+            roundedPacmanPositionY = TILEHEIGHT * math.ceil(game.pacman.position.y/TILEHEIGHT)
             final_move = agent.get_action(old_state)
             reward, done, score = play_step(final_move, old_state)
+            start_time = time.time()
+            while time.time() < start_time + 0.5 and not game.gameover and TILEWIDTH * math.ceil(game.pacman.position.x/TILEWIDTH) == roundedPacmanPositionX and TILEHEIGHT * math.ceil(game.pacman.position.y/TILEHEIGHT) == roundedPacmanPositionY:
+                continue
             new_state = game.get_state()
 
             # Train short memory
@@ -638,8 +645,10 @@ def trainAI():
                     pygame.locals.KEYDOWN, key=pygame.locals.K_SPACE)
                 pygame.event.post(keyEvent)
     else:
-        pass
-        # for i in range(100):
+        while True:
+            print(game.get_state())
+            time.sleep(1)
+        # while True:
         #     action = random.randint(0, 3)
         #     if action == 0:
         #         print("Move Up")
@@ -685,16 +694,10 @@ def continue_pygame_loop():
     yield
 
 if __name__ == "__main__":
-    manager = multiprocessing.Manager()
-    final_list = manager.list()
-
-
-
     threads = []
 
     # threads.append(threading.Thread(target=runGame, daemon=True))
-    # def runGame():
-    # global game
+    global game
     
     threads.append(threading.Thread(target=trainAI, daemon=True))
 

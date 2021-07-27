@@ -8,7 +8,8 @@ class LevelController(object):
         
         if mode == 'rl':
             self.level = 0
-            self.levelmaps = {0: {"name":"maze1.txt", "row":0, "fruit":"cherry"}}
+            self.levelmaps = {0: {"name":"maze1.txt", "row":0, "fruit":"cherry"},
+                1: {"name":"maze2.txt", "row":1, "fruit":"banana"}}
         
     def nextLevel(self):
         self.level += 1

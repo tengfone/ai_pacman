@@ -49,7 +49,7 @@ class Agent:
         # Random Moves: tradeoff between exploration | exploitation
         self.epsilon = self.n_games
         final_move = [0, 0, 0, 0]
-        if self.epsilon <= 10:
+        if self.epsilon <= 20:
             move = random.randint(0, 3)
             final_move[move] = 1
         else:
