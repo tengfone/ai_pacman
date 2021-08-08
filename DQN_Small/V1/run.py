@@ -162,32 +162,10 @@ class GameController(object):
 
         # print(state)
         state = state.reshape(-1)
-        # state[4:] *= (1 / state[4:].max())
         state[4:] = state[4:] / 512
         state[4:] = 1 - state[4:]
-        # state[4:][state[4:] ==  1] = 0
         print(state)
         return np.array(state)
-
-    # any use?
-
-    # def move(self, action):
-    #     if action == self.AI_UP:
-    #         # print("Move Up")
-    #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_UP)
-    #         pygame.event.post(keyEvent)
-    #     elif action == self.AI_DOWN:
-    #         # print("Move Down")
-    #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_DOWN)
-    #         pygame.event.post(keyEvent)
-    #     elif action == self.AI_LEFT:
-    #         # print("Move Left")
-    #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_LEFT)
-    #         pygame.event.post(keyEvent)
-    #     elif action == self.AI_RIGHT:
-    #         # print("Move Right")
-    #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
-    #         pygame.event.post(keyEvent)
 
     def __init__(self):
         pygame.init()
@@ -650,28 +628,6 @@ def trainAI():
         while True:
             print(game.get_state())
             time.sleep(1)
-        # while True:
-        #     action = random.randint(0, 3)
-        #     if action == 0:
-        #         print("Move Up")
-        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_UP)
-        #         pygame.event.post(keyEvent)
-        #     elif action == 1:
-        #         print("Move Down")
-        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_DOWN)
-        #         pygame.event.post(keyEvent)
-        #     elif action == 2:
-        #         print("Move Left")
-        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_LEFT)
-        #         pygame.event.post(keyEvent)
-        #     elif action == 3:
-        #         print("Move Right")
-        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
-        #         pygame.event.post(keyEvent)
-        #     print(game.score)
-        #     print(game.get_state_closest())
-        #     time.sleep(1)
-
 
 def plot(scores, mean_scores):
     display.clear_output(wait=True)

@@ -475,13 +475,6 @@ def play_step(action, old_state):
 
     game.waitForCheck = True
 
-    actionMapperX = {0: 0, 1: 0, 2: -1, 3: 1}
-    actionMapperY = {0: -1, 1: 1, 2: 0, 3: 0}
-
-    # if game.pacmanPrevPosition == game.pacman.position:
-    #     game.reward -= 10
-    # game.pacmanPrevPosition = game.pacman.position
-
     # Check GameOver
     gameover = game.gameover
 
@@ -622,27 +615,6 @@ def trainAI():
         while True:
             print(game.get_state())
             time.sleep(1)
-        # while True:
-        #     action = random.randint(0, 3)
-        #     if action == 0:
-        #         print("Move Up")
-        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_UP)
-        #         pygame.event.post(keyEvent)
-        #     elif action == 1:
-        #         print("Move Down")
-        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_DOWN)
-        #         pygame.event.post(keyEvent)
-        #     elif action == 2:
-        #         print("Move Left")
-        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_LEFT)
-        #         pygame.event.post(keyEvent)
-        #     elif action == 3:
-        #         print("Move Right")
-        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
-        #         pygame.event.post(keyEvent)
-        #     print(game.score)
-        #     print(game.get_state_closest())
-        #     time.sleep(1)
 
 
 def plot(scores, mean_scores):

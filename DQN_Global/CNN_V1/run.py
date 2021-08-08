@@ -77,31 +77,7 @@ class GameController(object):
             index = WALL_INDEX
             self.get_direction(state, index, wall.position.x, wall.position.y)
 
-        # print(state)
-        # state = state.reshape(-1)
-        # print(state.tolist())
         return np.array(state, dtype=int)
-
-
-    # any use?
-
-    # def move(self, action):
-    #     if action == self.AI_UP:
-    #         # print("Move Up")
-    #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_UP)
-    #         pygame.event.post(keyEvent)
-    #     elif action == self.AI_DOWN:
-    #         # print("Move Down")
-    #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_DOWN)
-    #         pygame.event.post(keyEvent)
-    #     elif action == self.AI_LEFT:
-    #         # print("Move Left")
-    #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_LEFT)
-    #         pygame.event.post(keyEvent)
-    #     elif action == self.AI_RIGHT:
-    #         # print("Move Right")
-    #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
-    #         pygame.event.post(keyEvent)
 
     def __init__(self):
         pygame.init()
@@ -468,11 +444,6 @@ def play_step(action, old_state):
         game.reward -= 50
     game.pacmanPrevPosition = game.pacman.position
 
-    # if old_state[8*WALL_INDEX+actionMapper[actionIndex]] > 0.9:
-    #     game.reward -= 50
-    # elif old_state[8*WALL_INDEX+actionMapper2[actionIndex][0]] > 0.9 or old_state[8*WALL_INDEX+actionMapper2[actionIndex][1]] > 0.9:
-    #     game.reward -= 10
-
     # Check GameOver
     gameover = game.gameover
     pacmanIndex = np.where(old_state[0] == 1)
@@ -484,25 +455,16 @@ def play_step(action, old_state):
         game.reward -= 50
         if gameover:
             game.reward = -200
-    # elif (old_state[DANGER_INDEX, actionMapper2[actionIndex][0]] > 0.9 or old_state[DANGER_INDEX, actionMapper2[actionIndex][1]] > 0.9) and old_state[0][actionMapper[actionIndex]] < 0.9:
-    #     game.reward -= 10
     
     if old_state[GHOST_INDEX, pacmanIndexX, pacmanIndexY] > 0.9:
         game.reward += 200
-    # elif (old_state[GHOST_INDEX, actionMapper2[actionIndex][0]] > 0.9 or old_state[GHOST_INDEX, actionMapper2[actionIndex][1]] > 0.9) and old_state[0][actionMapper[actionIndex]] < 0.9:
-    #     game.reward += 50
     
     if old_state[PELLET_INDEX, pacmanIndexX, pacmanIndexY] > 0.9:
         game.reward += 10
-    # elif (old_state[PELLET_INDEX, actionMapper2[actionIndex][0]] > 0.9 or old_state[PELLET_INDEX, actionMapper2[actionIndex][1]] > 0.9) and old_state[0][actionMapper[actionIndex]] < 0.9:
-    #     game.reward += 5
 
     if old_state[POWERPELLET_INDEX, pacmanIndexX, pacmanIndexY] > 0.9:
         game.reward += 20
-    # elif (old_state[POWERPELLET_INDEX, actionMapper2[actionIndex][0]] > 0.9 or old_state[POWERPELLET_INDEX, actionMapper2[actionIndex][1]] > 0.9) and old_state[0][actionMapper[actionIndex]] < 0.9:
-    #     game.reward += 10
 
-    print(actionIndex, game.reward)
     return game.reward, gameover, game.score
 
 
@@ -588,28 +550,6 @@ def trainAI():
         while True:
             print(game.get_state())
             time.sleep(1)
-        # while True:
-        #     action = random.randint(0, 3)
-        #     if action == 0:
-        #         print("Move Up")
-        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_UP)
-        #         pygame.event.post(keyEvent)
-        #     elif action == 1:
-        #         print("Move Down")
-        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_DOWN)
-        #         pygame.event.post(keyEvent)
-        #     elif action == 2:
-        #         print("Move Left")
-        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_LEFT)
-        #         pygame.event.post(keyEvent)
-        #     elif action == 3:
-        #         print("Move Right")
-        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
-        #         pygame.event.post(keyEvent)
-        #     print(game.score)
-        #     print(game.get_state_closest())
-        #     time.sleep(1)
-
 
 def plot(scores, mean_scores):
     display.clear_output(wait=True)
@@ -636,7 +576,6 @@ def continue_pygame_loop():
 if __name__ == "__main__":
     threads = []
 
-    # threads.append(threading.Thread(target=runGame, daemon=True))
     global game
     
     threads.append(threading.Thread(target=trainAI, daemon=True))

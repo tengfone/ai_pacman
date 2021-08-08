@@ -64,13 +64,6 @@ class TrainerQ:
         action = torch.tensor(action, dtype=torch.long)
         reward = torch.tensor(reward, dtype=torch.float)
 
-        # if len(state.shape) == 1:
-        # if len(state.shape) == 2:
-        #     state = state.unsqueeze(0).unsqueeze(0)
-        #     next_state = next_state.unsqueeze(0).unsqueeze(0)
-        #     action = torch.unsqueeze(action, 0)
-        #     reward = torch.unsqueeze(reward, 0)
-        #     done = (done, )
         if len(state.shape) == 1:
             state = state.unsqueeze(0)
             next_state = next_state.unsqueeze(0)
