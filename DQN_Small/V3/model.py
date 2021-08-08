@@ -8,32 +8,13 @@ import os
 class LinearQNet(nn.Module):
     def __init__(self, w, h, hidden_size, output_size):
         super().__init__()
-        self.linear1 = nn.Linear(56, 256)
-        self.linear2 = nn.Linear(256, 64)
-        # self.linear1 = nn.Linear(7056, 1028)
-        # self.linear2 = nn.Linear(1028, 64)
-        # self.conv1 = nn.Conv2d(7, 4, kernel_size=1, stride=1)
-        # self.conv2 = nn.Conv2d(4, 1, kernel_size=1, stride=1)
-        # self.bn1 = nn.BatchNorm2d(1)
-        # self.conv2 = nn.Conv2d(2, 4, kernel_size=1, stride=1)
-        # self.bn2 = nn.BatchNorm2d(4)
-
-        # Number of Linear input connections depends on output of conv2d layers
-        # and therefore the input image size, so compute it.
-        # def conv2d_size_out(size, kernel_size = 1, stride = 1):
-        #     return (size - (kernel_size - 1) - 1) // stride  + 1
-        # convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
-        # convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
+        self.linear1 = nn.Linear(56, 512)
+        self.linear2 = nn.Linear(512, 64)
         self.head = nn.Linear(64, output_size)
 
-    # def forward(self, x):
-    #     x = F.relu(self.linear1(x))
-    #     x = self.linear2(x)
-    #     return x
     def forward(self, x):
         x = F.relu(self.linear1(x))
         x = F.relu(self.linear2(x))
-        # x = F.relu(self.bn2(self.conv2(x)))
         return self.head(x.view(x.size(0), -1))
 
 class TrainerQ:
@@ -66,8 +47,6 @@ class TrainerQ:
         model_folder_path = './model'
         if os.path.exists(model_folder_path):
             file_name = os.path.join(model_folder_path, file_name)
-            # self.model.load_state_dict(torch.load(file_name))
-            # print("model loaded")
             checkpoint = torch.load(file_name)
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -83,13 +62,6 @@ class TrainerQ:
         action = torch.tensor(action, dtype=torch.long)
         reward = torch.tensor(reward, dtype=torch.float)
 
-        # if len(state.shape) == 1:
-        # if len(state.shape) == 2:
-        #     state = state.unsqueeze(0).unsqueeze(0)
-        #     next_state = next_state.unsqueeze(0).unsqueeze(0)
-        #     action = torch.unsqueeze(action, 0)
-        #     reward = torch.unsqueeze(reward, 0)
-        #     done = (done, )
         if len(state.shape) == 1:
             state = state.unsqueeze(0)
             next_state = next_state.unsqueeze(0)
@@ -113,7 +85,7 @@ class TrainerQ:
 
         self.optimizer.zero_grad()
         self.loss = self.criterion(target, pred)
-        print(self.loss)
+        print("loss", self.loss)
         self.loss.backward()
 
         self.optimizer.step()

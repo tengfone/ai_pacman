@@ -3,7 +3,7 @@ import numpy as np
 import random
 from pygame.locals import *
 import sys
-sys.path.append("./..")
+sys.path.append('./../../')
 from constants import *
 from pacman import Pacman
 from nodes import NodeGroup

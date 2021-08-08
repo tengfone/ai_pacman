@@ -10,7 +10,7 @@ from IPython import display
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
-LR = 0.0003
+LR = 0.0001
 plt.ion()
 
 
@@ -22,8 +22,8 @@ class Agent:
         self.gamma = 0.8  # Discount rate Must be < 1
         self.memory = deque(maxlen=MAX_MEMORY)  # Popleft if over max mem
         # 28 is number of features, 4 is up,down,left,right
-        self.model = LinearQNet(8, 7, 256, 4)
-        self.trainer = TrainerQ(self.model, lr=LR, gamma=self.gamma, load = load)
+        self.model = LinearQNet(8, 7, 128, 4)
+        self.trainer = TrainerQ(self.model, lr=LR, gamma=self.gamma, load=load)
         self.prevPrediction = None
         if load:
             self.n_games, self.record = self.trainer.load()
@@ -48,24 +48,34 @@ class Agent:
 
     def get_action(self, state):
         # Random Moves: tradeoff between exploration | exploitation
-        self.epsilon = 100/(self.n_games+100)
+
+
         final_move = [0, 0, 0, 0]
-        if self.epsilon > random.random():
+        if (self.n_games <= 20):
+            
             move = random.randint(0, 3)
             final_move[move] = 1
-            state0 = torch.tensor(state, dtype=torch.float).unsqueeze(0)
-            prediction = self.model(state0)
-            print("random", prediction)
+
         else:
-            state0 = torch.tensor(state, dtype=torch.float).unsqueeze(0)
-            prediction = self.model(state0)
-            # if self.prevPrediction is None:
-            #     self.prevPrediction = prediction
-            # print(prediction - self.prevPrediction)
-            #move = torch.argmax(prediction - self.prevPrediction).item()  # get best move [0,0,1,0]
-            # self.prevPrediction = prediction
-            print("predict", prediction)
-            move = torch.argmax(prediction).item()  # get best move [0,0,1,0]
-            final_move[move] = 1
+
+            # Set the percent you want to explore
+            self.epsilon = 0.2
+
+            if random.uniform(0, 1) < self.epsilon:
+                """
+                Explore: select a random action
+                """
+                move = random.randint(0, 3)
+                final_move[move] = 1
+
+            else:
+                """
+                Exploit: select the action with max value (future reward)
+                """
+
+                state0 = torch.tensor(state, dtype=torch.float).unsqueeze(0)
+                prediction = self.model(state0)
+                move = torch.argmax(prediction).item()  # get best move [0,0,1,0]
+                final_move[move] = 1
 
         return final_move

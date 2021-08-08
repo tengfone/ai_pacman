@@ -1,3 +1,5 @@
+import sys
+sys.path.append('./../../')
 import pygame
 import numpy as np
 import random
@@ -14,7 +16,6 @@ from levels import LevelController
 from text import TextGroup
 from sprites import Spritesheet
 from maze import Maze
-import sys
 import threading
 import time
 import os
@@ -25,6 +26,7 @@ import matplotlib.pyplot as plt
 from IPython import display
 import multiprocessing
 import math
+
 
 DANGER_INDEX = 1
 PELLET_INDEX = 2
@@ -416,7 +418,7 @@ class GameController(object):
         pygame.display.update()
 
     def draw_text(self, text, screen, pos, size, color, centered=False):
-        font = pygame.font.Font(FONTTYPE, size)
+        font = pygame.font.Font(f"{FONTTYPE}", size)
         text = font.render(text, False, color)
         text_size = text.get_size()
         if centered:
@@ -594,8 +596,8 @@ def trainAI():
         while True:
             game.reward = 0
             old_state = game.get_state()
-            roundedPacmanPositionX = TILEWIDTH * math.ceil(game.pacman.position.x/TILEWIDTH)
-            roundedPacmanPositionY = TILEHEIGHT * math.ceil(game.pacman.position.y/TILEHEIGHT)
+            roundedPacmanPositionX = TILEWIDTH * math.floor(game.pacman.position.x/TILEWIDTH)
+            roundedPacmanPositionY = TILEHEIGHT * math.floor(game.pacman.position.y/TILEHEIGHT)
             final_move = agent.get_action(old_state)
             reward, done, score = play_step(final_move, old_state)
             start_time = time.time()

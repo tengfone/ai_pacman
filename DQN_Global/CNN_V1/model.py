@@ -8,32 +8,13 @@ import os
 class LinearQNet(nn.Module):
     def __init__(self, w, h, hidden_size, output_size):
         super().__init__()
-        self.linear1 = nn.Linear(28, 256)
-        self.linear2 = nn.Linear(256, 64)
-        # self.linear1 = nn.Linear(7056, 1028)
-        # self.linear2 = nn.Linear(1028, 64)
-        # self.conv1 = nn.Conv2d(7, 4, kernel_size=1, stride=1)
-        # self.conv2 = nn.Conv2d(4, 1, kernel_size=1, stride=1)
-        # self.bn1 = nn.BatchNorm2d(1)
-        # self.conv2 = nn.Conv2d(2, 4, kernel_size=1, stride=1)
-        # self.bn2 = nn.BatchNorm2d(4)
+        self.conv1 = nn.Conv2d(7, 1, kernel_size=2, stride=1)
+        self.bn1 = nn.BatchNorm2d(1)
+        linear_input_size = 945
+        self.head = nn.Linear(linear_input_size, output_size)
 
-        # Number of Linear input connections depends on output of conv2d layers
-        # and therefore the input image size, so compute it.
-        # def conv2d_size_out(size, kernel_size = 1, stride = 1):
-        #     return (size - (kernel_size - 1) - 1) // stride  + 1
-        # convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
-        # convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
-        self.head = nn.Linear(64, output_size)
-
-    # def forward(self, x):
-    #     x = F.relu(self.linear1(x))
-    #     x = self.linear2(x)
-    #     return x
     def forward(self, x):
-        x = F.relu(self.linear1(x))
-        x = F.relu(self.linear2(x))
-        # x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn1(self.conv1(x)))
         return self.head(x.view(x.size(0), -1))
 
 class TrainerQ:
@@ -90,13 +71,12 @@ class TrainerQ:
         #     action = torch.unsqueeze(action, 0)
         #     reward = torch.unsqueeze(reward, 0)
         #     done = (done, )
-        if len(state.shape) == 1:
+        if len(state.shape) == 3:
             state = state.unsqueeze(0)
             next_state = next_state.unsqueeze(0)
             action = torch.unsqueeze(action, 0)
             reward = torch.unsqueeze(reward, 0)
             done = (done, )
-        print(state)
 
         # Predict Q values with current state
         pred = self.model(state)
@@ -113,7 +93,6 @@ class TrainerQ:
 
         self.optimizer.zero_grad()
         self.loss = self.criterion(target, pred)
-        print(self.loss)
         self.loss.backward()
 
         self.optimizer.step()
