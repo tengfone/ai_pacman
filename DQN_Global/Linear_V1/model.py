@@ -6,16 +6,17 @@ import os
 
 
 class LinearQNet(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, w, h, hidden_size, output_size):
         super().__init__()
-        self.linear1 = nn.Linear(input_size, hidden_size)
-        self.linear2 = nn.Linear(hidden_size, output_size)
-        
+        # self.linear1 = nn.Linear(28, 256)
+        self.linear1 = nn.Linear(36,256)
+        self.linear2 = nn.Linear(256, 64)
+        self.head = nn.Linear(64, output_size)
+
     def forward(self, x):
         x = F.relu(self.linear1(x))
-        x = self.linear2(x)
-        
-        return x
+        x = F.relu(self.linear2(x))
+        return self.head(x.view(x.size(0), -1))
 
 class TrainerQ:
     def __init__(self, model, lr, gamma, load) -> None:
@@ -64,7 +65,7 @@ class TrainerQ:
         action = torch.tensor(action, dtype=torch.long)
         reward = torch.tensor(reward, dtype=torch.float)
 
-        if len(state.shape) == 3:
+        if len(state.shape) == 1:
             state = state.unsqueeze(0)
             next_state = next_state.unsqueeze(0)
             action = torch.unsqueeze(action, 0)
@@ -72,7 +73,6 @@ class TrainerQ:
             done = (done, )
 
         # Predict Q values with current state
-        # ERROR HERE
         pred = self.model(state)
 
         # r + y * max(next_pred Q Value)
@@ -87,6 +87,7 @@ class TrainerQ:
 
         self.optimizer.zero_grad()
         self.loss = self.criterion(target, pred)
+        print(self.loss)
         self.loss.backward()
 
         self.optimizer.step()
