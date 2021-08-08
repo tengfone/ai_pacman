@@ -6,15 +6,17 @@ import os
 
 
 class LinearQNet(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, w, h, hidden_size, output_size):
         super().__init__()
-        self.linear1 = nn.Linear(input_size, 3528)
-        self.linear2 = nn.Linear(3528,output_size)
+        # self.linear1 = nn.Linear(28, 256)
+        self.linear1 = nn.Linear(36,256)
+        self.linear2 = nn.Linear(256, 64)
+        self.head = nn.Linear(64, output_size)
 
     def forward(self, x):
         x = F.relu(self.linear1(x))
-        x = self.linear2(x)
-        return x
+        x = F.relu(self.linear2(x))
+        return self.head(x.view(x.size(0), -1))
 
 class TrainerQ:
     def __init__(self, model, lr, gamma, load) -> None:
@@ -85,6 +87,7 @@ class TrainerQ:
 
         self.optimizer.zero_grad()
         self.loss = self.criterion(target, pred)
+        print(self.loss)
         self.loss.backward()
 
         self.optimizer.step()
