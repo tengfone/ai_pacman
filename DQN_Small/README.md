@@ -25,11 +25,8 @@ First 400 games explore with decreasing chance, after 400 games is exploit
 
 ## V4
 
-LR = 0.0001
-
-Gamma = 0.8
-
-2 Linear Layer, Input ??, Hidden 128, Output 4
-
+LR = 0.0001  
+Gamma = 0.8  
+3 Linear Layer 1008 > 256 > 64 > 4  
 First 20 games explore, subsequent games 20% chance explore, 80% chance exploit
 ![V4](./V4.PNG)
