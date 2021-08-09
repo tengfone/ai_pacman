@@ -2,20 +2,39 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from torchsummary import summary
 import os
 
 
 class LinearQNet(nn.Module):
-    def __init__(self, w, h, hidden_size, output_size):
+    def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(7, 1, kernel_size=2, stride=1)
-        self.bn1 = nn.BatchNorm2d(1)
-        linear_input_size = 945
-        self.head = nn.Linear(linear_input_size, output_size)
+
+        #self.linear1 = nn.Linear(1008, 256)
+        #self.linear2 = nn.Linear(256, 64)
+        # self.linear1 = nn.Linear(7056, 1028)
+        # self.linear2 = nn.Linear(1028, 64)
+        self.conv1 = nn.Conv2d(1, 8, kernel_size=2, stride=2)
+        self.conv2 = nn.Conv2d(8, 16, kernel_size=2, stride=2)
+        # self.bn1 = nn.BatchNorm2d(1)
+        # self.conv2 = nn.Conv2d(2, 4, kernel_size=1, stride=1)
+        # self.bn2 = nn.BatchNorm2d(4)
+
+        # Number of Linear input connections depends on output of conv2d layers
+        # and therefore the input image size, so compute it.
+        # def conv2d_size_out(size, kernel_size = 1, stride = 1):
+        #     return (size - (kernel_size - 1) - 1) // stride  + 1
+        # convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
+        # convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
+        self.linear1 = nn.Linear(1008, 64)
+        self.head = nn.Linear(64, 4)
 
     def forward(self, x):
-        x = F.relu(self.bn1(self.conv1(x)))
-        return self.head(x.view(x.size(0), -1))
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.linear1(x.view(x.size(0), -1)))
+        # x = F.relu(self.bn2(self.conv2(x)))
+        return self.head(x)
 
 class TrainerQ:
     def __init__(self, model, lr, gamma, load) -> None:
@@ -27,7 +46,7 @@ class TrainerQ:
         self.steps = 0
         if load:
             self.load()
-    
+
     def save(self, n_games, record, file_name='model.pth'):
         model_folder_path = './model'
         if not os.path.exists(model_folder_path):
@@ -42,7 +61,7 @@ class TrainerQ:
             'n_games': n_games,
             'record': record
             }, file_name)
-    
+
     def load(self, file_name='model.pth'):
         model_folder_path = './model'
         if os.path.exists(model_folder_path):
@@ -64,14 +83,16 @@ class TrainerQ:
         action = torch.tensor(action, dtype=torch.long)
         reward = torch.tensor(reward, dtype=torch.float)
 
-        if len(state.shape) == 3:
-            state = state.unsqueeze(0)
-            next_state = next_state.unsqueeze(0)
+        if type(done) is bool:
+            state = state.unsqueeze(0).unsqueeze(0)
+            next_state = next_state.unsqueeze(0).unsqueeze(0)
             action = torch.unsqueeze(action, 0)
             reward = torch.unsqueeze(reward, 0)
             done = (done, )
+        elif type(done) is tuple:
+            state = state.unsqueeze(1)
+            next_state = next_state.unsqueeze(1)
 
-        # Predict Q values with current state
         pred = self.model(state)
 
         # r + y * max(next_pred Q Value)
@@ -86,7 +107,11 @@ class TrainerQ:
 
         self.optimizer.zero_grad()
         self.loss = self.criterion(target, pred)
+        print("loss", self.loss)
         self.loss.backward()
 
         self.optimizer.step()
         self.steps += 1
+
+model = LinearQNet()
+print(summary(model, (1, 28, 36)))
