@@ -8,8 +8,8 @@ from model import LinearQNet, TrainerQ
 import matplotlib.pyplot as plt
 from IPython import display
 
-MAX_MEMORY = 50_000
-BATCH_SIZE = 500
+MAX_MEMORY = 100_000
+BATCH_SIZE = 64
 LR = 0.001
 plt.ion()
 
@@ -18,11 +18,12 @@ class Agent:
     def __init__(self, load) -> None:
         self.n_games = 0
         self.record = 0
-        self.epsilon = 0  # Randomness
-        self.gamma = 0.8  # Discount rate Must be < 1
+        self.epsilon = 50/(self.n_games+50)  # Randomness
+        self.gamma = 0.2  # Discount rate Must be < 1
         self.memory = deque(maxlen=MAX_MEMORY)  # Popleft if over max mem
-        self.model = LinearQNet(8, 7, 256, 4)
+        self.model = LinearQNet()
         self.trainer = TrainerQ(self.model, lr=LR, gamma=self.gamma, load = load)
+        self.prevPrediction = None
         if load:
             self.n_games, self.record = self.trainer.load()
 
@@ -46,14 +47,18 @@ class Agent:
 
     def get_action(self, state):
         # Random Moves: tradeoff between exploration | exploitation
-        self.epsilon = self.n_games
+        self.epsilon = 50/(self.n_games+50)
         final_move = [0, 0, 0, 0]
-        if self.epsilon <= 20:
+        if self.epsilon > random.random():
             move = random.randint(0, 3)
             final_move[move] = 1
-        else:
-            state0 = torch.tensor(state, dtype=torch.float).unsqueeze(0)
+            state0 = torch.tensor(state, dtype=torch.float).unsqueeze(0).unsqueeze(0)
             prediction = self.model(state0)
+            print("random", prediction)
+        else:
+            state0 = torch.tensor(state, dtype=torch.float).unsqueeze(0).unsqueeze(0)
+            prediction = self.model(state0)
+            print("predict", prediction)
             move = torch.argmax(prediction).item()  # get best move [0,0,1,0]
             final_move[move] = 1
 

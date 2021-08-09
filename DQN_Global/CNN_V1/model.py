@@ -9,23 +9,8 @@ import os
 class LinearQNet(nn.Module):
     def __init__(self):
         super().__init__()
-
-        #self.linear1 = nn.Linear(1008, 256)
-        #self.linear2 = nn.Linear(256, 64)
-        # self.linear1 = nn.Linear(7056, 1028)
-        # self.linear2 = nn.Linear(1028, 64)
         self.conv1 = nn.Conv2d(1, 8, kernel_size=2, stride=2)
         self.conv2 = nn.Conv2d(8, 16, kernel_size=2, stride=2)
-        # self.bn1 = nn.BatchNorm2d(1)
-        # self.conv2 = nn.Conv2d(2, 4, kernel_size=1, stride=1)
-        # self.bn2 = nn.BatchNorm2d(4)
-
-        # Number of Linear input connections depends on output of conv2d layers
-        # and therefore the input image size, so compute it.
-        # def conv2d_size_out(size, kernel_size = 1, stride = 1):
-        #     return (size - (kernel_size - 1) - 1) // stride  + 1
-        # convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
-        # convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
         self.linear1 = nn.Linear(1008, 64)
         self.head = nn.Linear(64, 4)
 
@@ -33,7 +18,6 @@ class LinearQNet(nn.Module):
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.linear1(x.view(x.size(0), -1)))
-        # x = F.relu(self.bn2(self.conv2(x)))
         return self.head(x)
 
 class TrainerQ:
@@ -66,8 +50,6 @@ class TrainerQ:
         model_folder_path = './model'
         if os.path.exists(model_folder_path):
             file_name = os.path.join(model_folder_path, file_name)
-            # self.model.load_state_dict(torch.load(file_name))
-            # print("model loaded")
             checkpoint = torch.load(file_name)
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -114,4 +96,3 @@ class TrainerQ:
         self.steps += 1
 
 model = LinearQNet()
-print(summary(model, (1, 28, 36)))
