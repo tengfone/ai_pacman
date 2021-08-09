@@ -31,6 +31,7 @@ Then run the game by: ```python3 run.py```
 
 Corresponding to the report these are the approaches to the version numbers  
 Approach 1: DQN_Small > V1  
-Approach 2: ??  
-Approach 3: DQN_Global > CNN_V1  
-Approach 4: ??
+Approach 2: DQN_Global > Linear_V1
+Approach 3: missing  
+Approach 4: DQN_Global > CNN_V1  
+Approach 5: DQN_Small > V3  

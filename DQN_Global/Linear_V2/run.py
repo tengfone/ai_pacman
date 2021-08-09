@@ -41,17 +41,83 @@ class GameController(object):
 
     directionMapper = {"0_-1": 0, "0_1": 1, "-1_0": 2, "1_0": 3}
 
+    # def get_direction(self, state, index, X, Y, wall_multiplier = 1):
+    #     X = int(X/16)
+    #     Y = int(Y/16)
+    #     state[index][X][Y] = 1
+
+    # def get_state(self):
+    #     # Up Down Left Right
+    #     # Direction, Danger, Coin, Powerup, Ghost, Cherry, Wall
+    #     state = np.zeros([7, NCOLS, NROWS])
+
+    #     roundedPacmanPositionX = TILEWIDTH * math.floor(self.pacman.position.x/TILEWIDTH)
+    #     roundedPacmanPositionY = TILEHEIGHT * math.floor(self.pacman.position.y/TILEHEIGHT)
+    #     index = 0
+    #     self.get_direction(state, index, roundedPacmanPositionX, roundedPacmanPositionY)
+
+    #     for ghost in self.ghosts:
+    #         index = GHOST_INDEX if ghost.mode.name == "FREIGHT" else DANGER_INDEX
+    #         ghostPositionX = TILEWIDTH * math.floor(ghost.position.x/TILEWIDTH)
+    #         ghostPositionY = TILEHEIGHT * math.floor(ghost.position.y/TILEHEIGHT)
+    #         self.get_direction(state, index, ghostPositionX, ghostPositionY)
+
+    #     for pellet in self.pellets.pelletList:
+    #         index = POWERPELLET_INDEX if pellet.name == "powerpellet" else PELLET_INDEX
+    #         self.get_direction(state, index, pellet.position.x, pellet.position.y)
+
+    #     if self.fruit is not None:
+    #         index = 5
+    #         self.get_direction(state, index, self.fruit.position.x, self.fruit.position.y)
+
+    #     for wall in self.walls.wallList:
+    #         index = WALL_INDEX
+    #         self.get_direction(state, index, wall.position.x, wall.position.y)
+
+    #     # print(state)
+    #     # state = state.reshape(-1)
+    #     # print(state.tolist())
+    #     return np.array(state, dtype=int)
+
     MULTIPLIER_FRONT = 1
     MULTIPLIER_SIDE = 1
     WALL_MULTIPLER = 1
 
     def get_direction(self, state, index, diffX, diffY, wall_multiplier = 1):
         state[int(diffX/16)][int(diffY/16)] = index
-       
+        # if abs(diffX) <= TILEWIDTH * self.MULTIPLIER_SIDE * wall_multiplier and diffY == 0:
+        #     if diffX > 0:  # Left
+        #         if state[2] != 1 and state[2] != 4:
+        #             state[2] = index
+        #     else:  # Right
+        #         if state[3] != 1 and state[3] != 4:
+        #             state[3] = index
+        # elif abs(diffY) <= TILEHEIGHT * self.MULTIPLIER_SIDE * wall_multiplier and diffX == 0:
+        #     if diffY > 0:  # Up
+        #         if state[0] != 1 and state[0] != 4:
+        #             state[0] = index
+        #     else:  # Down
+        #         if state[1] != 1 and state[1] != 4:
+        #             state[1] = index
+        # if abs(diffX) <= TILEWIDTH * self.MULTIPLIER_SIDE * wall_multiplier and diffY == 0:
+        #     if diffX > 0:  # Left
+        #         state[index][2] = 1
+        #     else:  # Right
+        #         state[index][3] = 1
+        # elif abs(diffY) <= TILEHEIGHT * self.MULTIPLIER_SIDE * wall_multiplier and diffX == 0:
+        #     if diffY > 0:  # Up
+        #         state[index][0] = 1
+        #     else:  # Down
+        #         state[index][1] = 1
+
     def get_state(self):
         # Up Down Left Right
         # Direction, Danger, Coin, Powerup, Ghost, Cherry, Wall
         state = np.zeros([NCOLS, NROWS])
+        # direction = str(self.pacman.direction.x) + "_" + \
+        #     str(self.pacman.direction.y)
+        # if direction in self.directionMapper:
+        #     state[0][self.directionMapper[direction]] = 1
 
         for pellet in self.pellets.pelletList:
             diffX = pellet.position.x
@@ -580,6 +646,27 @@ def trainAI():
         while True:
             print(game.get_state())
             time.sleep(1)
+        # while True:
+        #     action = random.randint(0, 3)
+        #     if action == 0:
+        #         print("Move Up")
+        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_UP)
+        #         pygame.event.post(keyEvent)
+        #     elif action == 1:
+        #         print("Move Down")
+        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_DOWN)
+        #         pygame.event.post(keyEvent)
+        #     elif action == 2:
+        #         print("Move Left")
+        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_LEFT)
+        #         pygame.event.post(keyEvent)
+        #     elif action == 3:
+        #         print("Move Right")
+        #         keyEvent = pygame.event.Event(pygame.locals.KEYDOWN, key=pygame.locals.K_RIGHT)
+        #         pygame.event.post(keyEvent)
+        #     print(game.score)
+        #     print(game.get_state_closest())
+        #     time.sleep(1)
 
 
 def plot(scores, mean_scores):

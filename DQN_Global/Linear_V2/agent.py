@@ -1,23 +1,14 @@
 import torch
 import random
 import numpy as np
-<<<<<<< HEAD
-from run import GameController
-=======
->>>>>>> fc13320b078911dfbbb3cfdad844e54c52c306f5
 from collections import deque
 from constants import *
 from model import LinearQNet, TrainerQ
 import matplotlib.pyplot as plt
 from IPython import display
 
-<<<<<<< HEAD
-MAX_MEMORY = 50_000
-BATCH_SIZE = 500
-=======
 MAX_MEMORY = 100_000
 BATCH_SIZE = 128
->>>>>>> fc13320b078911dfbbb3cfdad844e54c52c306f5
 LR = 0.001
 plt.ion()
 
@@ -26,21 +17,13 @@ class Agent:
     def __init__(self, load) -> None:
         self.n_games = 0
         self.record = 0
-<<<<<<< HEAD
-        self.epsilon = 0  # Randomness
-        self.gamma = 0.8  # Discount rate Must be < 1
-=======
         self.epsilon = 50/(self.n_games+50)  # Randomness
         self.gamma = 0.2  # Discount rate Must be < 1
->>>>>>> fc13320b078911dfbbb3cfdad844e54c52c306f5
         self.memory = deque(maxlen=MAX_MEMORY)  # Popleft if over max mem
         # 28 is number of features, 4 is up,down,left,right
         self.model = LinearQNet(8, 7, 256, 4)
         self.trainer = TrainerQ(self.model, lr=LR, gamma=self.gamma, load = load)
-<<<<<<< HEAD
-=======
         self.prevPrediction = None
->>>>>>> fc13320b078911dfbbb3cfdad844e54c52c306f5
         if load:
             self.n_games, self.record = self.trainer.load()
 
@@ -69,19 +52,11 @@ class Agent:
         if self.epsilon > random.random():
             move = random.randint(0, 3)
             final_move[move] = 1
-<<<<<<< HEAD
-            state0 = torch.tensor(state, dtype=torch.float).unsqueeze(0)
-            prediction = self.model(state0)
-            print("random", prediction)
-        else:
-            state0 = torch.tensor(state, dtype=torch.float).unsqueeze(0)
-=======
             state0 = torch.tensor(state, dtype=torch.float).unsqueeze(0).unsqueeze(0)
             prediction = self.model(state0)
             print("random", prediction)
         else:
             state0 = torch.tensor(state, dtype=torch.float).unsqueeze(0).unsqueeze(0)
->>>>>>> fc13320b078911dfbbb3cfdad844e54c52c306f5
             prediction = self.model(state0)
             print("predict", prediction)
             move = torch.argmax(prediction).item()  # get best move [0,0,1,0]
