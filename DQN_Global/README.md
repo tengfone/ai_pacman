@@ -9,14 +9,3 @@ Conv2d(7,1)
 BatchNorm2d(1)
 Linear(945,4)
 First 20 games explore, after that is exploit
-
-## Linear_V2
-
-LR = 0.0001
-
-Gamma = 0.8
-
-2 Linear Layer, Input ??, Hidden 128, Output 4
-
-First 20 games explore, subsequent games 20% chance explore, 80% chance exploit
-![LinearV1](./Linear_V1.PNG)

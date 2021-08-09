@@ -22,3 +22,14 @@ Gamma = 0.2
 2 Linear Layer, Size 256, Input Size 56 - Look Ahead
 First 400 games explore with decreasing chance, after 400 games is exploit
 ![V3](./V3.png)
+
+## V4
+
+LR = 0.0001
+
+Gamma = 0.8
+
+2 Linear Layer, Input ??, Hidden 128, Output 4
+
+First 20 games explore, subsequent games 20% chance explore, 80% chance exploit
+![V4](./V4.PNG)

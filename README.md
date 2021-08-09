@@ -26,3 +26,11 @@ Then install requirements:
 Change directory to required version: ```cd ai_pacman/DQN_XXX/VX```  
 eg.  ```cd ai_pacman/DQN_Small/V1```  
 Then run the game by: ```python3 run.py```
+
+## Approaches:  
+
+Corresponding to the report these are the approaches to the version numbers  
+Approach 1: DQN_Small > V1  
+Approach 2: ??  
+Approach 3: DQN_Global > CNN_V1  
+Approach 4: ??
