@@ -1,5 +1,8 @@
 # Pac-Man Deep Q Learning (DQL)
-Exploring the use of Deep Q Learning with a variation of observable states on a complex multiple variable state game such as Pac-Man. The objective of the agent (Pac-man) is to complete the game
+Exploring the use of Deep Q Learning with a variation of observable states on a complex multiple variable state game such as Pac-Man. The objective of the agent (Pac-man) is to complete the game  
+
+# Preview  
+[![Demo](https://j.gifs.com/oZZ58B.gif)](https://www.youtube.com/watch?v=AUmdmSNmXUs)  
 
 ## Installation:
 Make sure you have venv installed.  
